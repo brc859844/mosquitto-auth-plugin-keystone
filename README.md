@@ -2,7 +2,7 @@ mosquitto-auth-plugin-keystone
 ==============================
 
 #Overview
-A simple autheticationplugin for the Mosquitto MQTT broker (http://mosquitto.org) that
+A simple authetication plugin for the Mosquitto MQTT broker (http://mosquitto.org) that
 provides the ability for the broker to authenticate users using the OpenStack
 Keystone identity service (or more specifically HP's variant thereof,
 http://docs.hpcloud.com/identity/). In its present form the plugin verifies
