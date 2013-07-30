@@ -66,22 +66,22 @@ int mosquitto_auth_plugin_init(void **user_data, struct mosquitto_auth_opt *auth
 	return (MOSQ_ERR_SUCCESS);
 }
 
-int mosquitto_auth_plugin_cleanup(void **user_data, struct mosquitto_auth_opt *auth_opts, int auth_opt_count)
+int mosquitto_auth_plugin_cleanup(void *user_data, struct mosquitto_auth_opt *auth_opts, int auth_opt_count)
 {
 	return (MOSQ_ERR_SUCCESS);
 }
 
-int mosquitto_auth_security_init(void **user_data, struct mosquitto_auth_opt *auth_opts, int auth_opt_count, bool reload)
+int mosquitto_auth_security_init(void *user_data, struct mosquitto_auth_opt *auth_opts, int auth_opt_count, bool reload)
 {
 	return (MOSQ_ERR_SUCCESS);
 }
 
-int mosquitto_auth_security_cleanup(void **user_data, struct mosquitto_auth_opt *auth_opts, int auth_opt_count, bool reload)
+int mosquitto_auth_security_cleanup(void *user_data, struct mosquitto_auth_opt *auth_opts, int auth_opt_count, bool reload)
 {
 	return (MOSQ_ERR_SUCCESS);
 }
 
-int mosquitto_auth_acl_check(void **user_data, const char *username, const char *topic, int access)
+int mosquitto_auth_acl_check(void *user_data, const char *clientid, const char *username, const char *topic, int access)
 {
 	/* For the moment we're assuming that if someone can log in then they can do all sorts of stuff */
 	return (MOSQ_ERR_SUCCESS);
@@ -99,7 +99,7 @@ static int cb_write_func(char* data, size_t size, size_t num, adc_MB_t *mb)
 	return (len);
 }
 
-int mosquitto_auth_unpwd_check(void **user_data, const char *username, const char *password)
+int mosquitto_auth_unpwd_check(void *user_data, const char *username, const char *password)
 {
 	const char *		fmt = "{auth\":{\"passwordCredentials\":{\"username\":\"%s\", \"password\":\"%s\"}}}";
 
@@ -190,7 +190,7 @@ int mosquitto_auth_unpwd_check(void **user_data, const char *username, const cha
 }
 
 
-int mosquitto_auth_psk_key_get(void **user_data, const char *hint, const char *identity, char *key, int max_key_len)
+int mosquitto_auth_psk_key_get(void *user_data, const char *hint, const char *identity, char *key, int max_key_len)
 {
 	return (MOSQ_ERR_AUTH);
 }
