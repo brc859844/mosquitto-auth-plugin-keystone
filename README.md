@@ -46,7 +46,7 @@ to use the service provided by HP Cloud (http://www.hpcloud.com).
     # Keystone identity service URI and proxy server details (if you go through a
     # proxy)
     auth_opt_keystone_uri https://region-a.geo-1.identity.hpcloudsvc.com:35357/v2.0/tokens
-    auth_opt_http_proxy 10.1.1.253:8080
+    auth_opt_http_proxy 10.1.1.1:8080
 
 You might also wish to set `allow_anonymous` to `false` in your configuration
 file to disable anonymous (unathenticated) logins. It is probably also a good
