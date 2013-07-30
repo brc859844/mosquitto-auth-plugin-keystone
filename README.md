@@ -31,7 +31,7 @@ the compiler can find the Mosquitto header files.
 You should now have mosquitto_auth_plugin_keystone.so.
 
 To configure the plugin, copy the shared library
-(mosquitto_auth_plugin_keystone.so) to somewhere sensible and edit your
+(`mosquitto_auth_plugin_keystone.so`) to somewhere sensible and edit your
 Mosquitto configuration file to include the following details, modifying the
 URL and proxy address as appropriate:
 
