@@ -1,457 +1,244 @@
-/* ###################################################################################################################### */
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include "adcmb.h"
-
-
 
 #define MIN_BLOCK_SIZE 	0x0000010
 #define MAX_BLOCK_SIZE 	0x8000000
 
-
-static char *buffer = NULL;
-
-
-#define MAX_LEN 128
-#define MAX_BUF 512
+#define MAX_TMP_BUF 512
 
 
-static char errstr[MAX_LEN];
+#if defined __GNUC__
+#define likely(x) __builtin_expect ((x), 1)
+#define unlikely(x) __builtin_expect ((x), 0)
+#else
+#define likely(x) (x)
+#define unlikely(x) (x)
+#endif
+
+
+#define adc_MB_Assert(x) \
+    do { \
+        if (unlikely (!(x))) { \
+            fprintf (stderr, "Assertion failed: %s (%s: %d)\n", #x, __FILE__, __LINE__); \
+            abort(); \
+        } \
+    } while (0)
+
+
+#define adc_MB_AllocAssert(x) \
+    do { \
+        if (unlikely (!(x))) { \
+            fprintf (stderr, "FATAL ERROR: OUT OF MEMORY (%s: %d)\n", __FILE__, __LINE__); \
+            abort(); \
+        } \
+    } while (0)
 
 
 
-
-
-
-const char *adc_MB_ErrorString()
-
+void adc_MB_SetBuf(adc_MB_t *mb, size_t len)
 {
 
-	return (errstr);
+	adc_MB_Assert(mb);
 
-}
-
-/* ---------------------------------------------------------------------------------------------------------------------- */
-
-int adc_MB_SetBuf(size_t len)
-
-{
-
-	if (buffer != NULL)
+	if (mb->buffer != NULL)
 	{
-	   free(buffer); buffer = NULL;
+	   free(mb->buffer);
 	}
 
-	buffer = (char *) malloc(len);
-
-	if (! buffer)
-	{
-	   sprintf(errstr, "malloc(): %s [%s, %d]", strerror(errno), __FILE__, __LINE__);
-
-	   return (-1);
-	}
-
-
-	return (0);
-
+	adc_MB_AllocAssert((mb->buffer = (char *) malloc(len * sizeof(char))));
 }
 
-/* ---------------------------------------------------------------------------------------------------------------------- */
 
 adc_MB_t *adc_MB_New(size_t size)
-
 {
+	adc_MB_t *		mb;
 
-	adc_MB_t *		block = NULL;
+    	adc_MB_AllocAssert((mb = (adc_MB_t *) calloc(1, sizeof(adc_MB_t))));
+     	adc_MB_Init(mb, size);
 
-
-	errstr[0] = '\0';
-
-
-	if (buffer == NULL)
-	{
-	   if (adc_MB_SetBuf(MAX_BUF) == -1)
-	   {
-	      return (NULL);
-      	   }
-
-	}
-
-
-    	block = (adc_MB_t *) malloc(sizeof(adc_MB_t));
-
-    	if (! block)
-	{
-	   sprintf(errstr, "malloc(): %s [%s, %d]", strerror(errno), __FILE__, __LINE__);
-
-	   return (NULL);
-	}
-
-
-    	if (adc_MB_Init(block, size) != 0)
-	{
-	   if (block)
-	   {
-	      free(block); block = NULL;
-	   }
-
-    	}
-
-
-	return (block);
-
+	return (mb);
 }
 
-/* ---------------------------------------------------------------------------------------------------------------------- */
 
-int adc_MB_Free(adc_MB_t *block)
-
+void adc_MB_Free(adc_MB_t *mb)
 {
-
-	errstr[0] = '\0';
-
-
-   	if (block == NULL)
+   	if (mb == NULL)
 	{
-	   return (0);
+	   return;
 	}
 
+      	adc_MB_Clean(mb);
 
-    	adc_MB_Clean(block);
+	if (mb->buffer != NULL)
+   	{
+	   free(mb->buffer);
+	}
 
-    	free(block);
-
-
-	return (0);
-
+    	free(mb);
 }
 
-/* ---------------------------------------------------------------------------------------------------------------------- */
 
-int adc_MB_Init(adc_MB_t *block, size_t size)
-
+void adc_MB_Init(adc_MB_t *mb, size_t size)
 {
 
-
-	errstr[0] = '\0';
-
-
-	if (block == NULL)
-	{
-	   sprintf(errstr, "Invalid input parameter [%s, %d]", __FILE__, __LINE__);
-
-	   return (-1);
-	}
-
-
-    	block->size = size;
-
+	adc_MB_Assert(mb);
 
 	if (size < MIN_BLOCK_SIZE)
 	{
-	   block->allocated = MIN_BLOCK_SIZE + 1;
+	   mb->allocated = MIN_BLOCK_SIZE + 1;
 	}
     	else
 	{
-	   block->allocated = size + 1;
+	   mb->allocated = size + 1;
 	}
 
+    	mb->size = size;
 
-    	if ((block->block = (void *) malloc(block->allocated)) == NULL)
-	{
-	   sprintf(errstr, "malloc(): %s [%s, %d]", strerror(errno), __FILE__, __LINE__);
-
-	   return (-1);
-	}
-
-
-	/* Initialize the memory */
-
-	memset(block->block, '\0', block->allocated);
-
-
-	return (0);
-
+    	adc_MB_AllocAssert((mb->block = (void *) calloc(1, mb->allocated)));
+	adc_MB_SetBuf(mb, MAX_TMP_BUF);
 }
 
-/* ---------------------------------------------------------------------------------------------------------------------- */
 
-int adc_MB_Clean(adc_MB_t *block)
+void adc_MB_Clean(adc_MB_t *mb)
+{
+	if (mb == NULL || mb->block == NULL)
+	{
+	   return;
+	}
 
+	free(mb->block); mb->block = NULL;
+
+    	mb->size = 0;
+	mb->allocated = 0;
+}
+
+
+void adc_MB_Reuse(adc_MB_t *mb)
 {
 
-	errstr[0] = '\0';
-
-
-	if (block == NULL || block->block == NULL)
+	if (mb == NULL || mb->block == NULL)
 	{
-	   return (0);
+	   return;
 	}
 
-
-	free(block->block);
-
-
-    	block->size = 0; block->allocated = 0;
-
-    	block->block = NULL;
-
-
-	return (0);
-
+    	mb->size = 0;
 }
 
-/* ---------------------------------------------------------------------------------------------------------------------- */
 
-int adc_MB_Reuse(adc_MB_t *block)
+size_t adc_MB_Size(adc_MB_t *mb)
 
 {
-
-	errstr[0] = '\0';
-
-
-	if (block == NULL || block->block == NULL)
-	{
-	   return (0);
-	}
-
-
-    	block->size = 0;
-
-	return (0);
-
+	adc_MB_Assert(mb);
+    	return (mb->size);
 }
 
-/* ---------------------------------------------------------------------------------------------------------------------- */
 
-size_t adc_MB_Size(adc_MB_t *block)
-
-{
-
-	errstr[0] = '\0';
-
-
-	if (block == NULL)
-	{
-	   sprintf(errstr, "Invalid input parameter [%s, %d]", __FILE__, __LINE__);
-
-	   return ((size_t) -1);
-	}
-
-
-    	return (block->size);
-
-}
-
-/* ---------------------------------------------------------------------------------------------------------------------- */
-
-char *adc_MB_ToString(adc_MB_t *block)
-
+char *adc_MB_ToString(adc_MB_t *mb)
 {
 
 	char * 		tmp;
 
-
-	errstr[0] = '\0';
-
-
-	if (block == NULL || block->block == NULL)
+	if (mb == NULL || mb->block == NULL)
 	{
 	   return (NULL);
 	}
 
-
 	/* Note that this is safe because we always add an extra byte */
-
-	tmp = (char *) block->block;
-
-	tmp[block->size] = '\0';
-
+	tmp = (char *) mb->block;
+	tmp[mb->size] = '\0';
 
     	return (tmp);
 
 }
 
-/* ---------------------------------------------------------------------------------------------------------------------- */
 
-void *adc_MB_Contents(adc_MB_t *block)
-
+void *adc_MB_Contents(adc_MB_t *mb)
 {
 
-	errstr[0] = '\0';
-
-	return (block == NULL ? NULL : block->block);
+	return (mb == NULL ? NULL : mb->block);
 
 }
 
-/* ---------------------------------------------------------------------------------------------------------------------- */
 
-int adc_MB_Resize(adc_MB_t *block, size_t size)
-
+void adc_MB_Resize(adc_MB_t *mb, size_t size)
 {
 
     	void * 		tmp = NULL;
-
     	int 		bytes;
 
+	adc_MB_Assert(mb);
 
-
-	errstr[0] = '\0';
-
-
-	if (block == NULL)
+	if (size <= mb->allocated)
 	{
-	   sprintf(errstr, "Invalid input parameter [%s, %d]", __FILE__, __LINE__);
-
-	   return (-1);
-	}
-
-
-	if (size <= block->allocated)
-	{
-	   block->size = size;
-
-	   return (0);
+	   mb->size = size;
+	   return;
     	}
 
-
-	if (block->allocated == 0)
+	if (mb->allocated == 0)
 	{
 	   bytes = 1;
 	}
 	else
 	{
-	   bytes = block->allocated;
+	   bytes = mb->allocated;
 	}
-
 
     	while (bytes < size && bytes <= MAX_BLOCK_SIZE)
 	{
 	   bytes *= 2;
 	}
 
-
 	/* Add an extra byte just for good measure */
-
 	bytes++;
+	adc_MB_Assert(bytes <= MAX_BLOCK_SIZE);
 
-
-    	if (bytes > MAX_BLOCK_SIZE)
-	{
-	   sprintf(errstr, "Maximum permitted block size exceeded (%d, %d)", bytes, MAX_BLOCK_SIZE);
-
-	   return (-1);
-	}
-
-
-    	tmp = (void *) malloc(bytes);
-
-    	if (! tmp)
-	{
-	   sprintf(errstr, "malloc(): %s [%s, %d]", strerror(errno), __FILE__, __LINE__);
-
-	   return (-1);
-	}
-
-
+    	adc_MB_AllocAssert((tmp = (void *) malloc(bytes)));
 	memset(tmp, '\0', bytes);
+    	memcpy(tmp, mb->block, mb->size);
 
+	free(mb->block);
 
-    	memcpy(tmp, block->block, block->size);
-
-	free(block->block);
-
-
-    	block->block = tmp; block->size = size; block->allocated = bytes;
-
-
-	return (0);
-
+    	mb->block = tmp; mb->size = size; mb->allocated = bytes;
 }
 
-/* ---------------------------------------------------------------------------------------------------------------------- */
 
-int adc_MB_Append(adc_MB_t *block, void *data, size_t len)
-
+void adc_MB_Append(adc_MB_t *mb, void *data, size_t len)
 {
 
 	int 		size;
 
+	adc_MB_Assert(mb);
 
-	errstr[0] = '\0';
-
-
-	if (block == NULL)
-	{
-	   sprintf(errstr, "Invalid input parameter [%s, %d]", __FILE__, __LINE__);
-
-	   return (-1);
-	}
-
-
-    	size = block->size;
-
-
-    	if (adc_MB_Resize(block, size + len) != 0)
-	{
-	   return (-1);
-	}
-
-
-    	memcpy(((unsigned char *) block->block) + size, data, len);
-
-
-	return (0);
-
+    	size = mb->size;
+    	adc_MB_Resize(mb, (size + len));
+    	memcpy(((unsigned char *) mb->block) + size, data, len);
 }
 
-/* ---------------------------------------------------------------------------------------------------------------------- */
 
-int adc_MB_memcpy(adc_MB_t *mb, size_t offset, void *data, size_t len)
+void adc_MB_memcpy(adc_MB_t *mb, size_t offset, void *data, size_t len)
 
 {
-
-	errstr[0] = '\0';
-
-
-	if ((offset + len) >= mb->allocated)
-	{
-	   sprintf(errstr, "Insufficient space in buffer for requested operation");
-
-	   return (-1);
-	}
-
+	/* Must fit within existing space */
+	adc_MB_Assert((offset + len) < mb->allocated);
 
 	memcpy(((unsigned char *) mb->block + offset), data, len);
-
-	return (0);
-
 }
 
-/* ---------------------------------------------------------------------------------------------------------------------- */
 
-int adc_MB_vsprintf(adc_MB_t *mb, const char *fmt, ...)
-
+void adc_MB_vsprintf(adc_MB_t *mb, const char *fmt, ...)
 {
 
 	va_list 		args;
 
 	int 			n;
 
-
 	va_start(args, fmt);
-
-	n = vsprintf(buffer, fmt, args);
-
+	n = vsprintf(mb->buffer, fmt, args);
 	va_end(args);
 
-
-	return (adc_MB_Append(mb, buffer, n));
-
+	adc_MB_Append(mb, mb->buffer, n);
 }
 
-/* ###################################################################################################################### */
