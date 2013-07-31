@@ -38,207 +38,193 @@
 
 
 
-void adc_MB_SetBuf(adc_MB_t *mb, size_t len)
+void adc_MB_SetBuf(adc_MB_t * mb, size_t len)
 {
 
-	adc_MB_Assert(mb);
+    adc_MB_Assert(mb);
 
-	if (mb->buffer != NULL)
-	{
-	   free(mb->buffer);
-	}
+    if (mb->buffer != NULL) {
+	free(mb->buffer);
+    }
 
-	adc_MB_AllocAssert((mb->buffer = (char *) malloc(len * sizeof(char))));
+    adc_MB_AllocAssert((mb->buffer = (char *) malloc(len * sizeof(char))));
 }
 
 
 adc_MB_t *adc_MB_New(size_t size)
 {
-	adc_MB_t *		mb;
+    adc_MB_t *mb;
 
-    	adc_MB_AllocAssert((mb = (adc_MB_t *) calloc(1, sizeof(adc_MB_t))));
-     	adc_MB_Init(mb, size);
+    adc_MB_AllocAssert((mb = (adc_MB_t *) calloc(1, sizeof(adc_MB_t))));
+    adc_MB_Init(mb, size);
 
-	return (mb);
+    return (mb);
 }
 
 
-void adc_MB_Free(adc_MB_t *mb)
+void adc_MB_Free(adc_MB_t * mb)
 {
-   	if (mb == NULL)
-	{
-	   return;
-	}
+    if (mb == NULL) {
+	return;
+    }
 
-      	adc_MB_Clean(mb);
+    adc_MB_Clean(mb);
 
-	if (mb->buffer != NULL)
-   	{
-	   free(mb->buffer);
-	}
+    if (mb->buffer != NULL) {
+	free(mb->buffer);
+    }
 
-    	free(mb);
+    free(mb);
 }
 
 
-void adc_MB_Init(adc_MB_t *mb, size_t size)
+void adc_MB_Init(adc_MB_t * mb, size_t size)
 {
 
-	adc_MB_Assert(mb);
+    adc_MB_Assert(mb);
 
-	if (size < MIN_BLOCK_SIZE)
-	{
-	   mb->allocated = MIN_BLOCK_SIZE + 1;
-	}
-    	else
-	{
-	   mb->allocated = size + 1;
-	}
+    if (size < MIN_BLOCK_SIZE) {
+	mb->allocated = MIN_BLOCK_SIZE + 1;
+    } else {
+	mb->allocated = size + 1;
+    }
 
-    	mb->size = size;
+    mb->size = size;
 
-    	adc_MB_AllocAssert((mb->block = (void *) calloc(1, mb->allocated)));
-	adc_MB_SetBuf(mb, MAX_TMP_BUF);
+    adc_MB_AllocAssert((mb->block = (void *) calloc(1, mb->allocated)));
+    adc_MB_SetBuf(mb, MAX_TMP_BUF);
 }
 
 
-void adc_MB_Clean(adc_MB_t *mb)
+void adc_MB_Clean(adc_MB_t * mb)
 {
-	if (mb == NULL || mb->block == NULL)
-	{
-	   return;
-	}
+    if (mb == NULL || mb->block == NULL) {
+	return;
+    }
 
-	free(mb->block); mb->block = NULL;
+    free(mb->block);
+    mb->block = NULL;
 
-    	mb->size = 0;
-	mb->allocated = 0;
+    mb->size = 0;
+    mb->allocated = 0;
 }
 
 
-void adc_MB_Reuse(adc_MB_t *mb)
+void adc_MB_Reuse(adc_MB_t * mb)
 {
 
-	if (mb == NULL || mb->block == NULL)
-	{
-	   return;
-	}
+    if (mb == NULL || mb->block == NULL) {
+	return;
+    }
 
-    	mb->size = 0;
+    mb->size = 0;
 }
 
 
-size_t adc_MB_Size(adc_MB_t *mb)
-
+size_t adc_MB_Size(adc_MB_t * mb)
 {
-	adc_MB_Assert(mb);
-    	return (mb->size);
+    adc_MB_Assert(mb);
+    return (mb->size);
 }
 
 
-char *adc_MB_ToString(adc_MB_t *mb)
+char *adc_MB_ToString(adc_MB_t * mb)
 {
 
-	char * 		tmp;
+    char *tmp;
 
-	if (mb == NULL || mb->block == NULL)
-	{
-	   return (NULL);
-	}
+    if (mb == NULL || mb->block == NULL) {
+	return (NULL);
+    }
 
-	/* Note that this is safe because we always add an extra byte */
-	tmp = (char *) mb->block;
-	tmp[mb->size] = '\0';
+    /* Note that this is safe because we always add an extra byte */
+    tmp = (char *) mb->block;
+    tmp[mb->size] = '\0';
 
-    	return (tmp);
+    return (tmp);
 
 }
 
 
-void *adc_MB_Contents(adc_MB_t *mb)
+void *adc_MB_Contents(adc_MB_t * mb)
 {
 
-	return (mb == NULL ? NULL : mb->block);
+    return (mb == NULL ? NULL : mb->block);
 
 }
 
 
-void adc_MB_Resize(adc_MB_t *mb, size_t size)
+void adc_MB_Resize(adc_MB_t * mb, size_t size)
 {
 
-    	void * 		tmp = NULL;
-    	int 		bytes;
+    void *tmp = NULL;
+    int bytes;
 
-	adc_MB_Assert(mb);
+    adc_MB_Assert(mb);
 
-	if (size <= mb->allocated)
-	{
-	   mb->size = size;
-	   return;
-    	}
+    if (size <= mb->allocated) {
+	mb->size = size;
+	return;
+    }
 
-	if (mb->allocated == 0)
-	{
-	   bytes = 1;
-	}
-	else
-	{
-	   bytes = mb->allocated;
-	}
+    if (mb->allocated == 0) {
+	bytes = 1;
+    } else {
+	bytes = mb->allocated;
+    }
 
-    	while (bytes < size && bytes <= MAX_BLOCK_SIZE)
-	{
-	   bytes *= 2;
-	}
+    while (bytes < size && bytes <= MAX_BLOCK_SIZE) {
+	bytes *= 2;
+    }
 
-	/* Add an extra byte just for good measure */
-	bytes++;
-	adc_MB_Assert(bytes <= MAX_BLOCK_SIZE);
+    /* Add an extra byte just for good measure */
+    bytes++;
+    adc_MB_Assert(bytes <= MAX_BLOCK_SIZE);
 
-    	adc_MB_AllocAssert((tmp = (void *) malloc(bytes)));
-	memset(tmp, '\0', bytes);
-    	memcpy(tmp, mb->block, mb->size);
+    adc_MB_AllocAssert((tmp = (void *) malloc(bytes)));
+    memset(tmp, '\0', bytes);
+    memcpy(tmp, mb->block, mb->size);
 
-	free(mb->block);
+    free(mb->block);
 
-    	mb->block = tmp; mb->size = size; mb->allocated = bytes;
+    mb->block = tmp;
+    mb->size = size;
+    mb->allocated = bytes;
 }
 
 
-void adc_MB_Append(adc_MB_t *mb, void *data, size_t len)
+void adc_MB_Append(adc_MB_t * mb, void *data, size_t len)
 {
 
-	int 		size;
+    int size;
 
-	adc_MB_Assert(mb);
+    adc_MB_Assert(mb);
 
-    	size = mb->size;
-    	adc_MB_Resize(mb, (size + len));
-    	memcpy(((unsigned char *) mb->block) + size, data, len);
+    size = mb->size;
+    adc_MB_Resize(mb, (size + len));
+    memcpy(((unsigned char *) mb->block) + size, data, len);
 }
 
 
-void adc_MB_memcpy(adc_MB_t *mb, size_t offset, void *data, size_t len)
-
+void adc_MB_memcpy(adc_MB_t * mb, size_t offset, void *data, size_t len)
 {
-	/* Must fit within existing space */
-	adc_MB_Assert((offset + len) < mb->allocated);
+    /* Must fit within existing space */
+    adc_MB_Assert((offset + len) < mb->allocated);
 
-	memcpy(((unsigned char *) mb->block + offset), data, len);
+    memcpy(((unsigned char *) mb->block + offset), data, len);
 }
 
 
-void adc_MB_vsprintf(adc_MB_t *mb, const char *fmt, ...)
+void adc_MB_vsprintf(adc_MB_t * mb, const char *fmt, ...)
 {
 
-	va_list 		args;
+    va_list args;
 
-	int 			n;
+    int n;
 
-	va_start(args, fmt);
-	n = vsprintf(mb->buffer, fmt, args);
-	va_end(args);
+    va_start(args, fmt);
+    n = vsprintf(mb->buffer, fmt, args);
+    va_end(args);
 
-	adc_MB_Append(mb, mb->buffer, n);
+    adc_MB_Append(mb, mb->buffer, n);
 }
-
