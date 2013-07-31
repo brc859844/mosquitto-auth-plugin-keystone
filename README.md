@@ -2,7 +2,7 @@ mosquitto-auth-plugin-keystone
 ==============================
 
 #Overview
-A simple autheticationplugin for the Mosquitto MQTT broker (http://mosquitto.org) that
+A simple authetication plugin for the Mosquitto MQTT broker (http://mosquitto.org) that
 provides the ability for the broker to authenticate users using the OpenStack
 Keystone identity service (or more specifically HP's variant thereof,
 http://docs.hpcloud.com/identity/). In its present form the plugin verifies
@@ -31,7 +31,7 @@ the compiler can find the Mosquitto header files.
 You should now have mosquitto_auth_plugin_keystone.so.
 
 To configure the plugin, copy the shared library
-(mosquitto_auth_plugin_keystone.so) to somewhere sensible and edit your
+(`mosquitto_auth_plugin_keystone.so`) to somewhere sensible and edit your
 Mosquitto configuration file to include the following details, modifying the
 URL and proxy address as appropriate:
 
