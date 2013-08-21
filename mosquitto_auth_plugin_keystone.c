@@ -153,7 +153,7 @@ int mosquitto_auth_unpwd_check(void *user_data, const char *username,
     headers = curl_slist_append(headers, "Content-Type: application/json");
     headers = curl_slist_append(headers, "Accept: application/json");
 
-    curl_easy_setopt(ch, CURLOPT_HTTPPOST, 1L);
+    curl_easy_setopt(ch, CURLOPT_POST, 1L);
     curl_easy_setopt(ch, CURLOPT_URL, keystone_uri);
     curl_easy_setopt(ch, CURLOPT_POSTFIELDS, data);
     curl_easy_setopt(ch, CURLOPT_POSTFIELDSIZE, strlen(data));
